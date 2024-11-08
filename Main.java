@@ -11,6 +11,7 @@ public class Main {
      * Don't make any changes here
      */
     public static void main(String[] args) {
+        System.out.println("Hadas first content");
         SwingUtilities.invokeLater(() -> {
             // Set the UIManager properties
             UIManager.put("Button.focus", new ColorUIResource(new Color(0, 0, 0, 0)));
