@@ -1,12 +1,32 @@
 import java.util.List;
 
-public class GreedyAI extends AIPlayer{
-    public GreedyAI (boolean isPlayerOne) {
+/**
+ * Represents a greedy AI player that selects the move maximizing the number of flipped discs.
+ * If multiple moves result in the same maximum flips, it prioritizes moves by their position
+ * (preferring the most right and top positions).
+ */
+public class GreedyAI extends AIPlayer {
+
+    /**
+     * Constructs a GreedyAI player, specifying whether the player is Player One.
+     *
+     * @param isPlayerOne Boolean indicating if this AI player is Player One.
+     */
+    public GreedyAI(boolean isPlayerOne) {
         super(isPlayerOne);
     }
 
-
-
+    /**
+     * Makes a move for the AI player based on the current game status.
+     * The move is chosen to maximize the number of discs flipped, following
+     * a greedy strategy. In the case of ties, the move is selected based on position
+     * preferences: first by column (rightmost) and then by row (topmost).
+     *
+     * @param gameStatus The current game status, providing information about valid moves
+     *                   and players.
+     * @return A {@link Move} object representing the selected move,
+     *         or {@code null} if no valid moves are available.
+     */
     @Override
     public Move makeMove(PlayableLogic gameStatus) {
         Player currentPlayer = gameStatus.isFirstPlayerTurn() ? gameStatus.getFirstPlayer() : gameStatus.getSecondPlayer();
