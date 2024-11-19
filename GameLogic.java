@@ -9,6 +9,7 @@ public class GameLogic implements PlayableLogic {
     private Player firstPlayer;
     private Player secondPlayer;
     private Stack<Move> moveHistory = new Stack<>();
+
     /**
      * Constructs a new GameLogic object with default players and an empty board.
      * Initializes the game to start with the first player.
@@ -24,8 +25,8 @@ public class GameLogic implements PlayableLogic {
      * Attempts to place a disc on the board at the specified position.
      * Validates the move, flips opponent discs, updates move history, and switches turns.
      *
-     * @param a     the position to place the disc
-     * @param disc  the disc to be placed
+     * @param a    the position to place the disc
+     * @param disc the disc to be placed
      * @return true if the move is valid and executed, false otherwise
      */
     @Override
@@ -358,7 +359,7 @@ public class GameLogic implements PlayableLogic {
                 return 0;
             } else if (current.getOwner() == disc.getOwner()) {
                 return count;
-            } else {
+            } else if (current instanceof SimpleDisc || current instanceof BombDisc) {
                 count++;
             }
 
@@ -398,16 +399,7 @@ public class GameLogic implements PlayableLogic {
                     // Found our own disc, so flip all the discs in between
                     discsToFlip.addAll(potentialFlips);
                     break;
-                } else if (currentDisc instanceof UnflippableDisc) {
-                    // Cannot flip UnflippableDisc, stop here
-                    break;
-                } else if (currentDisc instanceof BombDisc) {
-                    // Handle BombDisc flipping logic (cascade flip effect)
-                    potentialFlips.add(new Position(row, col));
-                    discsToFlip.addAll(applyBombEffect(new Position(row, col))); // Trigger bomb effect to flip surrounding discs
-                    discsToFlip.add(new Position(row, col)); // Bomb disc itself should also be flipped
-                    break;
-                } else {
+                } else if (currentDisc instanceof SimpleDisc) {
                     // If it's an opponent's SimpleDisc, add to potential flips
                     potentialFlips.add(new Position(row, col));
                 }
@@ -430,29 +422,7 @@ public class GameLogic implements PlayableLogic {
 
         return discsToFlip; // Return the list of flipped positions for move history
     }
-
-    /**
-     * Applies the bomb effect by flipping all discs surrounding a given position.
-     *
-     * @param bombPosition the position of the bomb
-     * @return a list of positions affected by the bomb
-     */
-    private List<Position> applyBombEffect(Position bombPosition) {
-        int[] rowDelta = {-1, -1, -1, 0, 0, 1, 1, 1};
-        int[] colDelta = {-1, 0, 1, -1, 1, -1, 0, 1};
-        List<Position> affectedPositions = new ArrayList<>();
-
-        for (int i = 0; i < rowDelta.length; i++) {
-            int row = bombPosition.row() + rowDelta[i];
-            int col = bombPosition.col() + colDelta[i];
-
-            if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
-                Disc currentDisc = board[row][col];
-                if (currentDisc != null) {
-                    affectedPositions.add(new Position(row, col));
-                }
-            }
-        }
-        return affectedPositions;
-    }
 }
+
+
+
