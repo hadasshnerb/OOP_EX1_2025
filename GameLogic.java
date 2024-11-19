@@ -399,7 +399,7 @@ public class GameLogic implements PlayableLogic {
                     // Found our own disc, so flip all the discs in between
                     discsToFlip.addAll(potentialFlips);
                     break;
-                } else if (currentDisc instanceof SimpleDisc) {
+                } else if (currentDisc instanceof SimpleDisc || currentDisc instanceof BombDisc) {
                     // If it's an opponent's SimpleDisc, add to potential flips
                     potentialFlips.add(new Position(row, col));
                 }
