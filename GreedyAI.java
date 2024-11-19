@@ -1,62 +1,71 @@
+import java.util.Comparator;
 import java.util.List;
 
-/**
- * Represents a greedy AI player that selects the move maximizing the number of flipped discs.
- * If multiple moves result in the same maximum flips, it prioritizes moves by their position
- * (preferring the most right and top positions).
- */
 public class GreedyAI extends AIPlayer {
 
     /**
-     * Constructs a GreedyAI player, specifying whether the player is Player One.
+     * Constructs a GreedyAI player.
      *
-     * @param isPlayerOne Boolean indicating if this AI player is Player One.
+     * @param isPlayerOne Indicates whether this AI is the first player or not.
      */
     public GreedyAI(boolean isPlayerOne) {
         super(isPlayerOne);
     }
 
     /**
-     * Makes a move for the AI player based on the current game status.
-     * The move is chosen to maximize the number of discs flipped, following
-     * a greedy strategy. In the case of ties, the move is selected based on position
-     * preferences: first by column (rightmost) and then by row (topmost).
+     * Determines the next move for the AI using a greedy algorithm.
+     * The AI selects the move that maximizes the number of opponent discs flipped.
+     * If multiple moves have the same number of flips, it chooses the move
+     * that is further to the right and higher on the board (based on column and row comparison).
      *
-     * @param gameStatus The current game status, providing information about valid moves
-     *                   and players.
-     * @return A {@link Move} object representing the selected move,
-     *         or {@code null} if no valid moves are available.
+     * @param gameStatus The current state of the game, providing game logic and valid moves.
+     * @return A Move representing the selected move, or null if no valid moves are available.
      */
     @Override
     public Move makeMove(PlayableLogic gameStatus) {
+        // Determine the current player
         Player currentPlayer = gameStatus.isFirstPlayerTurn() ? gameStatus.getFirstPlayer() : gameStatus.getSecondPlayer();
         Disc discToPlace = new SimpleDisc(currentPlayer);
 
+        // Get the list of valid moves
         List<Position> validMoves = gameStatus.ValidMoves();
         if (validMoves.isEmpty()) {
             return null; // No valid moves available
         }
 
-        Position bestMove = null;
-        int maxFlips = Integer.MIN_VALUE;
+        // Comparator to select the best move
+        Comparator<Position> comparator = new Comparator<Position>() {
+            @Override
+            public int compare(Position p1, Position p2) {
+                // Compare the number of flips
+                int flipsComparison = Integer.compare(
+                        gameStatus.countFlips(p1),
+                        gameStatus.countFlips(p2)
+                );
+                if (flipsComparison != 0) {
+                    return flipsComparison; // If the number of flips is different
+                }
 
-        // Select a greedy valid move
+                // Compare columns - prefer the move further to the right (higher column number)
+                int columnComparison = Integer.compare(p1.col(),p2.col());  // flipped to prefer higher column number
+                if (columnComparison != 0) {
+                    return columnComparison;
+                }
+
+                // Compare rows - prefer the move further down (higher row number)
+                return Integer.compare( p1.row(),p2.row()); // flipped to prefer higher row number
+            }
+        };
+
+        // Loop to find the best move
+        Position bestMove = null;
         for (Position move : validMoves) {
-            int flips = gameStatus.countFlips(move);
-            if (flips > maxFlips) {
-                maxFlips = flips;
+            if (bestMove == null || comparator.compare(move, bestMove) > 0) {
                 bestMove = move;
-            } else if (flips == maxFlips) {
-                // If multiple moves have the same number of flips, choose the most right move
-                if (move.col() > bestMove.col()) {
-                    bestMove = move;
-                }
-                if (move.row() < bestMove.row() && move.col() == bestMove.col()) {
-                    bestMove = move;
-                }
             }
         }
 
+        // Return the best move
         return new Move(bestMove, discToPlace, null);
     }
 }
