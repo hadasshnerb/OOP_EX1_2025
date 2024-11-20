@@ -220,8 +220,7 @@ public class GameLogic implements PlayableLogic {
         }
     }
 
-
-    /**
+/**
      * Undoes the last move, restoring the previous game state.
      * Handles flipping discs back and restoring special disc counts.
      */
@@ -229,7 +228,9 @@ public class GameLogic implements PlayableLogic {
     public void undoLastMove() {
         if (firstPlayer.isHuman() && secondPlayer.isHuman()) {
             if (moveHistory.isEmpty()) {
+                System.out.println("Undoing last move:");
                 System.out.println("\tNo previous move available to undo.");
+                System.out.println(" ");
                 return; // No moves to undo
             }
 
@@ -237,9 +238,8 @@ public class GameLogic implements PlayableLogic {
             Move lastMove = moveHistory.pop();
             Position position = lastMove.position();
             board[position.row()][position.col()] = null; // Remove the last placed disc
-            System.out.println("Undoing last move :");
+            System.out.println("Undoing last move:");
             System.out.println("\tUndo: removing " + lastMove.disc().getType() + " from (" + position.row() + ", " + position.col() + ")");
-
 
             // Reverse the flipped discs
             for (Position flippedPosition : lastMove.flippedPositions) {
@@ -282,23 +282,10 @@ public class GameLogic implements PlayableLogic {
      */
     @Override
     public int countFlips(Position a) {
-        int flipCount = 0;
-        if (a.row() >= boardSize || a.row() < 0 || a.col() > boardSize || a.col() < 0) {
-            return 0;
-        }
-        if (board[a.row()][a.col()] != null) {
-            return 0;
-        }
+        // Create a temporary disc to simulate placing it on the board
         Disc currentDisc = FirstPlayerTurn ? new SimpleDisc(firstPlayer) : new SimpleDisc(secondPlayer);
-
-        int[] rowDelta = {-1, -1, -1, 0, 0, 1, 1, 1};
-        int[] colDelta = {-1, 0, 1, -1, 1, -1, 0, 1};
-
-        for (int i = 0; i < rowDelta.length; i++) {
-            flipCount += oneDIrectionFlips(a, currentDisc, rowDelta[i], colDelta[i]);
-        }
-
-        return flipCount;
+        List<Position> flippablePositions = getFlippablePositions(a, currentDisc);
+        return flippablePositions.size();
     }
 
     /**
@@ -325,60 +312,46 @@ public class GameLogic implements PlayableLogic {
         // Determine the winner of the current game
         if (playerOneDiscs > playerTwoDiscs) {
             firstPlayer.addWin();  // Increment win for Player 1
-            System.out.println("Player 1 wins this match with " + playerOneDiscs + " discs! Player 2 had " + playerTwoDiscs + " discs.");
+            System.out.println("Player 1 wins with " + playerOneDiscs + " discs! Player 2 had " + playerTwoDiscs + " discs.");
         } else if (playerTwoDiscs > playerOneDiscs) {
             secondPlayer.addWin();  // Increment win for Player 2
-            System.out.println("Player 2 wins this match with " + playerTwoDiscs + " discs! Player 1 had " + playerOneDiscs + " discs.");
-        } else {
-            System.out.println("It's a tie! Both players have " + playerOneDiscs + " discs.");
+            System.out.println("Player 2 wins with " + playerTwoDiscs + " discs! Player 1 had " + playerOneDiscs + " discs.");
         }
-    }
-
-    /**
-     * Helper method to count potential flips in a single direction for a given move.
-     *
-     * @param position the starting position
-     * @param disc     the disc to be placed
-     * @param rowDelta the row direction to move
-     * @param colDelta the column direction to move
-     * @return the number of opponent discs that would be flipped in this direction
-     */
-    private int oneDIrectionFlips(Position position, Disc disc, int rowDelta, int colDelta) {
-        // start with 0 flips
-        int count = 0;
-
-        // to go to the pos I want to check
-        int row = position.row() + rowDelta;
-        int col = position.col() + colDelta;
-
-
-        while (row < boardSize && row >= 0 && col < boardSize && col >= 0) {
-            Disc current = board[row][col];
-
-            if (current == null) {
-                return 0;
-            } else if (current.getOwner() == disc.getOwner()) {
-                return count;
-            } else if (current instanceof SimpleDisc || current instanceof BombDisc) {
-                count++;
-            }
-
-            // Move further in the current direction
-            row += rowDelta;
-            col += colDelta;
-        }
-        // If we reach the edge of the board without finding our own disc, return 0 (invalid flip)
-        return 0;
     }
 
     /**
      * Flips the opponent's discs in all valid directions based on the move.
+     * Includes handling bomb discs and their chain effects.
      *
      * @param position the position where the disc is placed
      * @param disc     the disc to be placed
      * @return a list of positions where discs were flipped
      */
     private List<Position> flipDiscs(Position position, Disc disc) {
+        List<Position> discsToFlip = getFlippablePositions(position, disc);
+
+        // Flip all the discs that need to be flipped
+        for (Position pos : discsToFlip) {
+            board[pos.row()][pos.col()].setOwner(disc.getOwner());
+            // Print the flipping message
+            System.out.println("Player " + (disc.getOwner() == firstPlayer ? "1" : "2") +
+                    " flipped the " + board[pos.row()][pos.col()].getType() +
+                    " in (" + pos.row() + ", " + pos.col() + ")");
+        }
+        System.out.println();
+
+        return discsToFlip; // Return the list of flipped positions for move history
+    }
+
+    /**
+     * Calculates the positions of discs that would be flipped if a disc is placed at the specified position.
+     * This method does not modify the game board.
+     *
+     * @param position the position where the disc is placed
+     * @param disc     the disc to be placed
+     * @return a list of positions where discs would be flipped
+     */
+    private List<Position> getFlippablePositions(Position position, Disc disc) {
         List<Position> discsToFlip = new ArrayList<>();
         int[] rowDelta = {-1, -1, -1, 0, 0, 1, 1, 1};
         int[] colDelta = {-1, 0, 1, -1, 1, -1, 0, 1};
@@ -399,8 +372,11 @@ public class GameLogic implements PlayableLogic {
                     // Found our own disc, so flip all the discs in between
                     discsToFlip.addAll(potentialFlips);
                     break;
-                } else if (currentDisc instanceof SimpleDisc || currentDisc instanceof BombDisc) {
-                    // If it's an opponent's SimpleDisc, add to potential flips
+                } else if (currentDisc instanceof UnflippableDisc) {
+                    // Cannot flip UnflippableDisc, stop searching in this direction
+                    break;
+                } else {
+                    // Opponent's flippable disc (SimpleDisc or BombDisc)
                     potentialFlips.add(new Position(row, col));
                 }
 
@@ -410,19 +386,64 @@ public class GameLogic implements PlayableLogic {
             }
         }
 
-        // Flip all the discs that need to be flipped
-        for (Position pos : discsToFlip) {
-            board[pos.row()][pos.col()].setOwner(disc.getOwner());
-            // Print the flipping message
-            System.out.println("Player " + (disc.getOwner() == firstPlayer ? "1" : "2") +
-                    " flipped the " + board[pos.row()][pos.col()].getType() +
-                    " in (" + pos.row() + ", " + pos.col() + ")");
+        // Handle bomb disc effects
+        for (Position pos : new ArrayList<>(discsToFlip)) {
+            if (getDiscAtPosition(pos) instanceof BombDisc) {
+                bombHelper(pos, discsToFlip, disc.getOwner());
+            }
         }
-        System.out.println();
 
-        return discsToFlip; // Return the list of flipped positions for move history
+        return discsToFlip;
+    }
+
+    /**
+     * Handles the effect of a bomb disc by flipping all adjacent discs.
+     * This method works recursively if another bomb disc is found.
+     *
+     * @param pos         The position of the current bomb.
+     * @param discsToFlip The list of positions that will be flipped.
+     * @param discOwner   The owner of the disc that initiated the bomb effect.
+     */
+    private void bombHelper(Position pos, List<Position> discsToFlip, Player discOwner) {
+        // Check if the current position is on the board
+        if (isDiscInBoard(pos)) {
+            int[] rowDelta = {-1, -1, -1, 0, 0, 1, 1, 1};
+            int[] colDelta = {-1, 0, 1, -1, 1, -1, 0, 1};
+
+            // Traverse all 8 possible neighboring positions of the bomb disc
+            for (int i = 0; i < rowDelta.length; i++) {
+                int row = pos.row() + rowDelta[i];
+                int col = pos.col() + colDelta[i];
+                Position neighbor = new Position(row, col);
+
+                // Check if the neighbor is within bounds, has a disc, and is not already flipped
+                if (isDiscInBoard(neighbor) && getDiscAtPosition(neighbor) != null
+                        && !discsToFlip.contains(neighbor)
+                        && getDiscAtPosition(neighbor).getOwner() != discOwner) {
+
+                    // Add the disc to the list of positions to flip
+                    if (!(getDiscAtPosition(neighbor) instanceof UnflippableDisc)) {
+                        discsToFlip.add(neighbor);
+                    }
+
+                    // If the neighboring disc is a BombDisc, handle it recursively
+                    if (getDiscAtPosition(neighbor) instanceof BombDisc) {
+                        bombHelper(neighbor, discsToFlip, discOwner);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Utility method to check if a given position is within board boundaries.
+     *
+     * @param position the position to check
+     * @return true if the position is within the board, false otherwise
+     */
+    private boolean isDiscInBoard(Position position) {
+        int row = position.row();
+        int col = position.col();
+        return row >= 0 && row < boardSize && col >= 0 && col < boardSize;
     }
 }
-
-
-
