@@ -372,10 +372,8 @@ public class GameLogic implements PlayableLogic {
                     // Found our own disc, so flip all the discs in between
                     discsToFlip.addAll(potentialFlips);
                     break;
-                } else if (currentDisc instanceof UnflippableDisc) {
-                    // Cannot flip UnflippableDisc, stop searching in this direction
-                    break;
-                } else {
+                } else if (currentDisc instanceof BombDisc || currentDisc instanceof SimpleDisc)
+                {
                     // Opponent's flippable disc (SimpleDisc or BombDisc)
                     potentialFlips.add(new Position(row, col));
                 }
